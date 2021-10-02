@@ -7,7 +7,7 @@
 int handle_url(llhttp_t* parser, const char* at, size_t length)
 {
     char url[URL_MAX_LEN];
-    strncpy_s(url, URL_MAX_LEN, at, length);
+    strncpy(url, at, URL_MAX_LEN);
     printf("URL: %s", url);
     return 0;
 }
