@@ -8,5 +8,6 @@ int main()
     int reponse_len = strlen(reponse);
     HTTP_Parser parser(HTTP_RESPONSE);
     parser.parse(reponse, reponse_len);
+    parser.print();
     return 0;
 }

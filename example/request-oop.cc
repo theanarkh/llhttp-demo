@@ -8,6 +8,7 @@ int main()
         int request_len = strlen(request);
         HTTP_Parser parser(HTTP_REQUEST);
         parser.parse(request, request_len);
+        parser.print();
     }
     // {
     //     const char* request = "GET /hello HTTP/1.1\r\nconnection: keep-alive\r\ncontent-length: 2\r\n\r\n13\r\n\r\n";

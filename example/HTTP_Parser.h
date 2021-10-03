@@ -3,84 +3,83 @@
 #include <string>
 #include <vector>
 #include <cstring>
-#include <map>
+#include <ctime>
 #include "../llhttp.h"
 
 #define MAX_LEN 2048
 
 using namespace std;
 
-struct MapStringComparator {
-   bool operator()(const char* left, const char* right) const {
-      return ((left != nullptr) && (right != nullptr) && (strcmp(left, right) < 0));
-   }
-};
-
 class HTTP_Parser {
     public:
         HTTP_Parser(llhttp_type type) {
             llhttp_init(&parser, type, &HTTP_Parser::settings);
+            // set data after llhttp_init, because llhttp_init will call memset to fill zero to memory 
             parser.data = this;
         }
     
         int on_message_begin(llhttp_t* parser)
         {
-            printf("parse start\n");
+            major_version = 0;
+            minor_version = 0;
+            upgrade = 0;
+            keepalive = 0;
+            parse_start_time = 0;
+            header_end_time = 0;
+            message_end_time = 0;
+            url.clear();
+            status.clear();
+            keys.clear();
+            values.clear();
+            body.clear();
+            
+            parse_start_time = time(NULL);
             return 0;
         }
 
         int on_status(llhttp_t* parser, const char* at, size_t length)
         {
-            char status[MAX_LEN];
-            strncpy(status, at, length);
-            status[length] = '\0';
-            printf("on_status: %s\n", status);
+            status.append(at, length);
             return 0;
         }
 
         int on_url(llhttp_t* parser, const char* at, size_t length)
         { 
            url.append(at, length);
-           cout<<url;
            return 0;
         }
 
         int on_header_field(llhttp_t* parser, const char* at, size_t length)
-        {
-            char header_field[MAX_LEN];
-            strncpy(header_field, at, length);
-            header_field[length] = '\0';
-            printf("head field: %s\n", header_field);
+        {   
+            keys.push_back(string(at, length));
             return 0;
         }
 
         int on_header_value(llhttp_t* parser, const char* at, size_t length)
         {
-            char header_value[MAX_LEN];
-            strncpy(header_value, at, length);
-            header_value[length] = '\0';
-            printf("head value: %s\n", header_value);
+            values.push_back(string(at, length));
             return 0;
         }
 
         int on_headers_complete(llhttp_t* parser)
         {
-            printf("on_headers_complete, major: %d, major: %d, keep-alive: %d, upgrade: %d\n", parser->http_major, parser->http_minor, llhttp_should_keep_alive(parser), parser->upgrade);
+            header_end_time = time(NULL);
+            major_version = parser->http_major;
+            minor_version = parser->http_minor;
+            upgrade = parser->upgrade;
+            keepalive = llhttp_should_keep_alive(parser);
             return 0;
         }
 
         int on_body(llhttp_t* parser, const char* at, size_t length)
         {
-            char body[MAX_LEN];
-            strncpy(body, at, length);
-            body[length] = '\0';
-            printf("on_body: %s\n", body);
+            body.append(at, length);
             return 0;
         }
 
         int on_message_complete(llhttp_t* parser)
         {
-            printf("on_message_complete\n");
+            message_end_time = time(NULL);
             return 0;
         }
 
@@ -93,11 +92,30 @@ class HTTP_Parser {
             }
             return 0;
         }
-        
+        void print() {
+            cout<<"parse start: "<<ctime(&parse_start_time);
+            cout<<"url: "<<url<<endl;
+            cout<<"headers: "<<endl;
+            for (int i = 0; i < keys.size(); i++) {
+                cout <<"    "<<keys[i]<<": "<<values[i]<< endl;
+            }
+            cout<<"header on complete: "<<ctime(&header_end_time);
+            cout<<"body: "<<body<<endl;
+            cout<<"message on complete: "<<ctime(&message_end_time);
+            printf("major_version: %d major_version: %d keppalive: %d upgrade: %d", major_version, minor_version, keepalive, upgrade);
+        }
     private: 
+        unsigned char major_version;
+        unsigned char minor_version;
+        unsigned char upgrade;
+        unsigned char keepalive;
+        time_t parse_start_time;
+        time_t header_end_time;
+        time_t message_end_time;
         string url;
         string status;
-        map<char*, char*, MapStringComparator> headers;
+        vector<string> keys;
+        vector<string> values;
         string body;
         llhttp_t parser;
         static llhttp_settings_t settings;
