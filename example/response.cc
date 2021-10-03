@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "llhttp.h"
+#include "../llhttp.h"
 
 #define MAX_LEN 2048
 
@@ -16,6 +16,15 @@ int on_url(llhttp_t* parser, const char* at, size_t length)
     strncpy(url, at, length);
     url[length] = '\0';
     printf("on_url: %s\n", url);
+    return 0;
+}
+
+int on_status(llhttp_t* parser, const char* at, size_t length)
+{
+    char status[MAX_LEN];
+    strncpy(status, at, length);
+    status[length] = '\0';
+    printf("on_status: %s\n", status);
     return 0;
 }
 
@@ -63,24 +72,24 @@ int main()
     llhttp_t parser;
     llhttp_settings_t settings;
     llhttp_settings_init(&settings);
-    llhttp_init(&parser, HTTP_REQUEST, &settings);
+    llhttp_init(&parser, HTTP_RESPONSE, &settings);
 
     settings.on_message_begin = on_message_begin;
     settings.on_url = on_url;
+    settings.on_status = on_status;
     settings.on_header_field = on_header_field;
     settings.on_header_value = on_header_value;
     settings.on_headers_complete = on_headers_complete;
     settings.on_body = on_body;
     settings.on_message_complete = on_message_complete;
     
-    const char* request = "POST /index.html HTTP/1.1\r\nconnection:close\r\ncontent-length: 1\r\n\r\n1\r\n\r\n";
-    int request_len = strlen(request);
+    const char* reponse = "HTTP/1.1 200 OK\r\nServer: nginx\r\ncontent-length: 11\r\n\r\nhello:world\r\n\r\n";
+    int reponse_len = strlen(reponse);
 
-    enum llhttp_errno err = llhttp_execute(&parser, request, request_len);
+    enum llhttp_errno err = llhttp_execute(&parser, reponse, reponse_len);
     if (err != HPE_OK) {
        fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),
             parser.reason);
     }
-
     return 0;
 }
