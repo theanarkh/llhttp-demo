@@ -1,14 +1,26 @@
 #include <stdio.h>
-#include <string.h>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <cstring>
+#include <map>
 #include "../llhttp.h"
 
 #define MAX_LEN 2048
 
+using namespace std;
+
+struct MapStringComparator {
+   bool operator()(const char* left, const char* right) const {
+      return ((left != nullptr) && (right != nullptr) && (strcmp(left, right) < 0));
+   }
+};
+
 class HTTP_Parser {
     public:
         HTTP_Parser(llhttp_type type) {
-            parser.data = this;
             llhttp_init(&parser, type, &HTTP_Parser::settings);
+            parser.data = this;
         }
     
         int on_message_begin(llhttp_t* parser)
@@ -27,12 +39,10 @@ class HTTP_Parser {
         }
 
         int on_url(llhttp_t* parser, const char* at, size_t length)
-        {
-            char url[MAX_LEN];
-            strncpy(url, at, length);
-            url[length] = '\0';
-            printf("on_url: %s\n", url);
-            return 0;
+        { 
+           url.append(at, length);
+           cout<<url;
+           return 0;
         }
 
         int on_header_field(llhttp_t* parser, const char* at, size_t length)
@@ -85,6 +95,10 @@ class HTTP_Parser {
         }
         
     private: 
+        string url;
+        string status;
+        map<char*, char*, MapStringComparator> headers;
+        string body;
         llhttp_t parser;
         static llhttp_settings_t settings;
 };
@@ -94,7 +108,6 @@ llhttp_settings_t HTTP_Parser::settings = {
     [](llhttp_t * parser) {
         return ((HTTP_Parser *)parser->data)->on_message_begin(parser);
     },
-    
     [](llhttp_t * parser, const char * data, size_t len) {
         return ((HTTP_Parser *)parser->data)->on_url(parser, data, len);
     },
@@ -104,7 +117,6 @@ llhttp_settings_t HTTP_Parser::settings = {
     [](llhttp_t * parser, const char * data, size_t len) {
         return ((HTTP_Parser *)parser->data)->on_header_field(parser, data, len);
     },
-
     [](llhttp_t * parser, const char * data, size_t len) {
         return ((HTTP_Parser *)parser->data)->on_header_value(parser, data, len);
     },
