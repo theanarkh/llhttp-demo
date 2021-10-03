@@ -7,8 +7,9 @@
 class HTTP_Parser {
     public:
         HTTP_Parser(llhttp_type type) {
-            parser.data = this;
             llhttp_init(&parser, type, &HTTP_Parser::settings);
+            // set data after llhttp_init, because llhttp_init will call memset to fill zero to memory 
+            parser.data = this;
         }
     
         int on_message_begin(llhttp_t* parser)
